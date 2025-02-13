@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -14,41 +15,55 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Lock, Mail } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(1, "Password is required"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
-
-interface LoginFormProps {
-  onSubmit?: (data: FormValues) => void;
-  isLoading?: boolean;
-  onRegisterClick?: () => void;
-}
 
 const defaultValues: FormValues = {
   email: "",
   password: "",
 };
 
-export default function LoginForm({
-  onSubmit = (data) => console.log("Form submitted:", data),
-  isLoading = false,
-  onRegisterClick = () => {},
-}: LoginFormProps) {
+export default function LoginForm() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues,
   });
+
+  const onSubmit = async (data: FormValues) => {
+    try {
+      setIsLoading(true);
+      await login(data.email, data.password);
+      navigate("/");
+    } catch (error) {
+      console.error("Login failed:", error);
+      toast({
+        variant: "destructive",
+        title: "Login failed",
+        description: "Invalid email or password",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="w-full min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <Card className="w-full max-w-md bg-white">
         <CardHeader className="space-y-2">
           <CardTitle className="text-2xl font-bold text-center">
-            Admin Login
+            Login
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -106,7 +121,7 @@ export default function LoginForm({
                 <Button
                   variant="link"
                   className="p-0 h-auto font-semibold"
-                  onClick={onRegisterClick}
+                  onClick={() => navigate("/register")}
                 >
                   Register here
                 </Button>

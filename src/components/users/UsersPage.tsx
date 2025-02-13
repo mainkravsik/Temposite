@@ -10,7 +10,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Search, Trash2, UserCog } from "lucide-react";
+import { Search, Trash2, UserCog, Users as UsersIcon } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/use-toast";
 import { auth } from "@/lib/auth";
 
 interface User {
@@ -18,6 +28,80 @@ interface User {
   name: string;
   email: string;
   role: string;
+}
+
+interface CreateFamilyDialogProps {
+  onSubmit: (name: string, memberIds: string[]) => void;
+  users: User[];
+}
+
+function CreateFamilyDialog({ onSubmit, users }: CreateFamilyDialogProps) {
+  const [name, setName] = useState("");
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(name, selectedUsers);
+    setName("");
+    setSelectedUsers([]);
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button>
+          <UsersIcon className="mr-2 h-4 w-4" />
+          Create Family
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create New Family</DialogTitle>
+          <DialogDescription>
+            Create a new family and add members to it.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Family Name</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter family name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Select Members</Label>
+            {users.map((user) => (
+              <div key={user.id} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id={user.id}
+                  checked={selectedUsers.includes(user.id)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedUsers([...selectedUsers, user.id]);
+                    } else {
+                      setSelectedUsers(
+                        selectedUsers.filter((id) => id !== user.id),
+                      );
+                    }
+                  }}
+                />
+                <label htmlFor={user.id}>
+                  {user.name} ({user.email})
+                </label>
+              </div>
+            ))}
+          </div>
+          <Button type="submit" disabled={!name || selectedUsers.length === 0}>
+            Create Family
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 export default function UsersPage() {
@@ -37,6 +121,24 @@ export default function UsersPage() {
       console.error("Failed to load users:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCreateFamily = async (name: string, memberIds: string[]) => {
+    try {
+      await auth.createFamily(name, memberIds);
+      await loadUsers();
+      toast({
+        title: "Success",
+        description: "Family created successfully",
+      });
+    } catch (error) {
+      console.error("Failed to create family:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create family",
+        variant: "destructive",
+      });
     }
   };
 
@@ -62,10 +164,16 @@ export default function UsersPage() {
           <h2 className="text-3xl font-bold tracking-tight">Users</h2>
           <p className="text-muted-foreground">Manage your users here</p>
         </div>
-        <Button>
-          <UserCog className="mr-2 h-4 w-4" />
-          Add User
-        </Button>
+        <div className="space-x-2">
+          <Button>
+            <UserCog className="mr-2 h-4 w-4" />
+            Add User
+          </Button>
+          <CreateFamilyDialog
+            onSubmit={handleCreateFamily}
+            users={users.filter((u) => !u.familyId)}
+          />
+        </div>
       </div>
 
       <Card className="p-4">
@@ -115,6 +223,17 @@ export default function UsersPage() {
                       >
                         {user.role}
                       </span>
+                    </TableCell>
+                    <TableCell>
+                      {user.familyId ? (
+                        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800">
+                          Family Member
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800">
+                          No Family
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
