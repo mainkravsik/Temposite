@@ -13,31 +13,33 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Lock, Mail } from "lucide-react";
+import { Mail, Lock, User } from "lucide-react";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  name: z.string().min(2, "Name must be at least 2 characters"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface LoginFormProps {
+interface RegisterFormProps {
   onSubmit?: (data: FormValues) => void;
   isLoading?: boolean;
-  onRegisterClick?: () => void;
+  onLoginClick?: () => void;
 }
 
 const defaultValues: FormValues = {
   email: "",
   password: "",
+  name: "",
 };
 
-export default function LoginForm({
+export default function RegisterForm({
   onSubmit = (data) => console.log("Form submitted:", data),
   isLoading = false,
-  onRegisterClick = () => {},
-}: LoginFormProps) {
+  onLoginClick = () => {},
+}: RegisterFormProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues,
@@ -48,12 +50,33 @@ export default function LoginForm({
       <Card className="w-full max-w-md bg-white">
         <CardHeader className="space-y-2">
           <CardTitle className="text-2xl font-bold text-center">
-            Admin Login
+            Create Account
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                        <Input
+                          placeholder="John Doe"
+                          className="pl-10"
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="email"
@@ -64,7 +87,7 @@ export default function LoginForm({
                       <div className="relative">
                         <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                         <Input
-                          placeholder="admin@example.com"
+                          placeholder="user@example.com"
                           className="pl-10"
                           {...field}
                         />
@@ -98,17 +121,17 @@ export default function LoginForm({
               />
 
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Logging in..." : "Login"}
+                {isLoading ? "Creating account..." : "Register"}
               </Button>
 
               <div className="text-center text-sm">
-                Don't have an account?{" "}
+                Already have an account?{" "}
                 <Button
                   variant="link"
                   className="p-0 h-auto font-semibold"
-                  onClick={onRegisterClick}
+                  onClick={onLoginClick}
                 >
-                  Register here
+                  Login here
                 </Button>
               </div>
             </form>
